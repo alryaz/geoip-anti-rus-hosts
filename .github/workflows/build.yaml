@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout builder
-        uses: actions/checkout@v4
-        with:
-          repository: 1andrevich/antifilter-domain
+      # - name: Checkout builder
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: 1andrevich/antifilter-domain
   
       - name: Checkout data
         uses: actions/checkout@v4
@@ -32,10 +32,10 @@ jobs:
           sed -i '/^#/d' $FILE
           sort -o $FILE $FILE
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
+      # - name: Setup Go
+      #   uses: actions/setup-go@v5
+      #   with:
+      #     go-version-file: go.mod
 
       - name: Set variables
         run: |
@@ -43,17 +43,14 @@ jobs:
           echo "TAG_NAME=v$(date +%Y.%m.%d)" >> $GITHUB_ENV
         shell: bash
 
-      - name: List data and cwd
-        run: |
-          echo $(pwd)
-          ls -R ./
-          
-          echo $(pwd)/data
-          ls -R ./data
+      # - name: List data and cwd
+      #   run: |
+      #     echo $(pwd)
+      #     ls -R ./
 
-      - name: Build dat file
-        run: |
-          go run ./ --exportlists=hosts.txt --outputname=geosite.dat
+      # - name: Build dat file
+      #   run: |
+      #     go run ./ --exportlists=hosts.txt --outputname=geosite.dat
 
       - name: Install jq
         run: sudo apt-get install -y jq
@@ -103,7 +100,7 @@ jobs:
 
       - name: Generate sha256 hashes
         run: |
-          sha256sum geosite.dat > geosite.dat.sha256sum
+          # sha256sum geosite.dat > geosite.dat.sha256sum
           sha256sum foxyproxy.json > foxyproxy.json.sha256sum
           sha256sum v2raya_rules.txt > v2raya_rules.txt.sha256sum
 
