@@ -31,6 +31,10 @@ jobs:
           sed -i '/^#/d' $FILE
           sort -o $FILE $FILE
 
+      - name: Print hosts
+        run: |
+          cat data/hosts.txt
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
