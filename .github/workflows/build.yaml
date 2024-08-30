@@ -25,20 +25,12 @@ jobs:
           sparse-checkout: hosts.txt
           sparse-checkout-cone-mode: false
 
-      - name: List data
-        run: |
-          ls -R ./data
-
       - name: Cleanup file
         run: |
           FILE=data/hosts.txt
           sed -i '/^ *$/d' $FILE
           sed -i '/^#/d' $FILE
           sort -o $FILE $FILE
-
-      - name: Print hosts
-        run: |
-          cat data/hosts.txt
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -50,6 +42,14 @@ jobs:
           echo "RELEASE_NAME=$(date +%Y-%m-%d)" >> $GITHUB_ENV
           echo "TAG_NAME=v$(date +%Y.%m.%d)" >> $GITHUB_ENV
         shell: bash
+
+      - name: List data and cwd
+        run: |
+          echo $(pwd)
+          ls -R ./
+          
+          echo $(pwd)/data
+          ls -R ./data
 
       - name: Build dat file
         run: |
