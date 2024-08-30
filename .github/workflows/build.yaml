@@ -24,6 +24,10 @@ jobs:
           path: data
           sparse-checkout: hosts.txt
 
+      - name: List data
+        run: |
+          ls -R ./data
+
       - name: Cleanup file
         run: |
           FILE=data/hosts.txt
