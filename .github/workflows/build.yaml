@@ -23,6 +23,7 @@ jobs:
         with:
           path: data
           sparse-checkout: hosts.txt
+          sparse-checkout-cone-mode: false
 
       - name: List data
         run: |
