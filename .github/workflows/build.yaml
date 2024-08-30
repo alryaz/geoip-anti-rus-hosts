@@ -52,7 +52,7 @@ jobs:
       - name: Build foxyproxy file
         run: |
           # Read domains from the text file and create whitePatterns JSON array
-          white_patterns=$(cat hosts.txt | awk '{print "{\"title\": \"\", \"pattern\": \"*."$1"\", \"type\": 1, \"protocols\": 1, \"active\": true}"}' | jq -s '.')
+          white_patterns=$(cat data/hosts.txt | awk '{print "{\"title\": \"\", \"pattern\": \"*."$1"\", \"type\": 1, \"protocols\": 1, \"active\": true}"}' | jq -s '.')
 
           # Define the blackPatterns segment
           black_patterns='[
@@ -86,7 +86,7 @@ jobs:
         run: |
           while IFS= read -r domain; do
             echo "domain(domain:$domain)->proxy"
-          done < hosts.txt > v2raya_rules.txt
+          done < data/hosts.txt > v2raya_rules.txt
 
       - name: List output directory
         run: |
