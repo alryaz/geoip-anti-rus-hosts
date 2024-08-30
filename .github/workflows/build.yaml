@@ -1,0 +1,123 @@
+name: Build geosite.dat
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - hosts.txt
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout builder
+        uses: actions/checkout@v4
+        with:
+          repository: 1andrevich/antifilter-domain
+  
+      - name: Checkout data
+        uses: actions/checkout@v4
+        with:
+          path: data
+          sparse-checkout: hosts.txt
+
+      - name: Cleanup file
+        run: |
+          FILE=data/hosts.txt
+          sed -i '/^ *$/d' $FILE
+          sed -i '/^#/d' $FILE
+          sort -o $FILE $FILE
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set variables
+        run: |
+          echo "RELEASE_NAME=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+          echo "TAG_NAME=v$(date +%Y.%m.%d)" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Build dat file
+        run: |
+          go run ./ --exportlists=hosts.txt --outputname=geosite.dat
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Build foxyproxy file
+        run: |
+          # Read domains from the text file and create whitePatterns JSON array
+          white_patterns=$(cat hosts.txt | awk '{print "{\"title\": \"\", \"pattern\": \"*."$1"\", \"type\": 1, \"protocols\": 1, \"active\": true}"}' | jq -s '.')
+
+          # Define the blackPatterns segment
+          black_patterns='[
+            {
+              "title": "local hostnames (usually no dots in the name). Pattern exists because \'Do not use this proxy for localhost and intranet/private IP addresses\' is checked.",
+              "pattern": "^(?:[^:@/]+(?::[^@/]+)?@)?(?:localhost|127\\.\\d+\\.\\d+\\.\\d+)(?::\\d+)?(?:/.*)?$",
+              "type": 2,
+              "protocols": 1,
+              "active": true
+            },
+            {
+              "title": "local subnets (IANA reserved address space). Pattern exists because \'Do not use this proxy for localhost and intranet/private IP addresses\' is checked.",
+              "pattern": "^(?:[^:@/]+(?::[^@/]+)?@)?(?:192\\.168\\.\\d+\\.\\d+|10\\.\\d+\\.\\d+\\.\\d+|172\\.(?:1[6789]|2[0-9]|3[01])\\.\\d+\\.\\d+)(?::\\d+)?(?:/.*)?$",
+              "type": 2,
+              "protocols": 1,
+              "active": true
+            },
+            {
+              "title": "localhost - matches the local host optionally prefixed by a user:password authentication string and optionally suffixed by a port number. The entire local subnet (127.0.0.0/8) matches. Pattern exists because \'Do not use this proxy for localhost and intranet/private IP addresses\' is checked.",
+              "pattern": "^(?:[^:@/]+(?::[^@/]+)?@)?[\\w-]+(?::\\d+)?(?:/.*)?$",
+              "type": 2,
+              "protocols": 1,
+              "active": true
+            }
+          ]'
+
+          # Combine into the final JSON structure
+          jq -n --argjson whitePatterns "$white_patterns" --argjson blackPatterns "$black_patterns" '{whitePatterns: $whitePatterns, blackPatterns: $blackPatterns}' > foxyproxy.json
+
+      - name: Build v2rayA RoutingA rules file
+        run: |
+          while IFS= read -r domain; do
+            echo "domain(domain:$domain)->proxy"
+          done < hosts.txt > v2raya_rules.txt
+
+      - name: List output directory
+        run: |
+          ls -R ./
+
+      - name: Generate sha256 hashes
+        run: |
+          sha256sum geosite.dat > geosite.dat.sha256sum
+          sha256sum foxyproxy.json > foxyproxy.json.sha256sum
+          sha256sum v2raya_rules.txt > v2raya_rules.txt.sha256sum
+
+      - name: List directory before move
+        run: |
+          ls -R ./
+
+      - name: Move files to publish directory
+        run: |
+          mkdir -p publish
+          for item in *.sha256sum; do
+            mv $item ./publish
+            mv ${item%.sha256sum} ./publish
+          done
+
+      - name: List publish directory
+        run: |
+          ls -R ./publish
+
+      - name: Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: ${{ env.RELEASE_NAME }}
+          files: ./publish/*
+          make_latest: true
